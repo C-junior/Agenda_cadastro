@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda do Governador - Tocantins</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom styles for the Tocantins theme */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-tocantins-blue { background-color: #00529F; }
+        .text-tocantins-blue { color: #00529F; }
+        .bg-tocantins-yellow { background-color: #FFC72C; }
+        .text-tocantins-yellow { color: #FFC72C; }
+        .border-tocantins-yellow { border-color: #FFC72C; }
+        .hover\:bg-tocantins-yellow-dark:hover { background-color: #fca700; }
+        /* Custom styles for calendar */
+        .calendar-event {
+            font-size: 0.7rem;
+            padding: 2px 4px;
+            margin-top: 2px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="flex flex-col min-h-screen">
+
+        <!-- Header -->
+        <header class="bg-tocantins-blue shadow-lg">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-star text-tocantins-yellow text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-white">Agenda Oficial</h1>
+                        <p class="text-sm sm:text-base text-gray-200">Governador do Estado do Tocantins</p>
+                    </div>
+                </div>
+                <button @click="toggleModal()" class="bg-tocantins-yellow text-tocantins-blue font-bold py-2 px-4 rounded-lg shadow-md hover:bg-tocantins-yellow-dark transition duration-300 flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span class="hidden sm:inline">Adicionar Evento</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            
+            <!-- View Toggler -->
+            <div class="flex justify-between items-center mb-6">
+                 <h2 class="text-2xl font-bold text-gray-800">Compromissos</h2>
+                 <div class="flex space-x-1 bg-blue-100 p-1 rounded-lg">
+                    <button @click="view = 'list'" :class="{'bg-tocantins-blue text-white': view === 'list', 'text-gray-600': view !== 'list'}" class="px-3 py-1 rounded-md text-sm font-medium transition-colors">Lista</button>
+                    <button @click="view = 'week'" :class="{'bg-tocantins-blue text-white': view === 'week', 'text-gray-600': view !== 'week'}" class="px-3 py-1 rounded-md text-sm font-medium transition-colors">Semana</button>
+                    <button @click="view = 'month'" :class="{'bg-tocantins-blue text-white': view === 'month', 'text-gray-600': view !== 'month'}" class="px-3 py-1 rounded-md text-sm font-medium transition-colors">Mês</button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div v-if="isLoading" class="text-center py-10">
+                <i class="fas fa-spinner fa-spin text-4xl text-tocantins-blue"></i>
+                <p class="mt-2 text-gray-600">Carregando agenda...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                <strong class="font-bold">Ocorreu um erro:</strong>
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+            
+            <!-- No Events Message -->
+            <div v-if="!isLoading && events.length === 0 && !error" class="text-center py-10 bg-white rounded-lg shadow-md">
+                <i class="fas fa-calendar-times text-4xl text-gray-400"></i>
+                <p class="mt-4 text-lg text-gray-600">Nenhum evento agendado no momento.</p>
+            </div>
+
+            <!-- LIST VIEW -->
+            <div v-if="!isLoading && view === 'list' && events.length > 0" class="space-y-4">
+                <div v-for="event in sortedEvents" :key="event.id" class="bg-white rounded-xl shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+                    <div class="flex">
+                        <div class="w-24 bg-tocantins-blue text-white flex flex-col items-center justify-center p-4 text-center">
+                            <span class="text-4xl font-bold">{{ getDay(event.date) }}</span>
+                            <span class="text-sm uppercase">{{ getMonthShort(event.date) }}</span>
+                            <span class="text-xs">{{ getYear(event.date) }}</span>
+                        </div>
+                        <div class="p-4 sm:p-6 flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-xl font-bold text-gray-900 mb-1">{{ event.title }}</h3>
+                                <span class="bg-blue-100 text-tocantins-blue text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ event.time }}</span>
+                            </div>
+                            <p class="text-gray-600 flex items-center mb-3"><i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>{{ event.location }}</p>
+                            <p class="text-gray-700 text-sm">{{ event.description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CALENDAR VIEWS (WEEK/MONTH) -->
+            <div v-if="!isLoading && (view === 'month' || view === 'week') && !error">
+                <!-- Calendar Header -->
+                <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-lg shadow">
+                    <button @click="changePeriod(-1)" class="p-2 rounded-full hover:bg-gray-200 transition-colors"><i class="fas fa-chevron-left"></i></button>
+                    <h3 class="text-xl font-semibold text-tocantins-blue">{{ currentPeriodLabel }}</h3>
+                    <button @click="changePeriod(1)" class="p-2 rounded-full hover:bg-gray-200 transition-colors"><i class="fas fa-chevron-right"></i></button>
+                </div>
+
+                <!-- MONTH VIEW -->
+                <div v-if="view === 'month'" class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="grid grid-cols-7 text-center font-bold text-gray-600 border-b">
+                        <div v-for="day in weekDays" :key="day" class="py-3">{{ day }}</div>
+                    </div>
+                    <div class="grid grid-cols-7">
+                        <div v-for="day in calendarDays" :key="day.date.toISOString()" class="relative border-r border-b h-24 sm:h-32 p-2" :class="{'bg-gray-50 text-gray-400': !day.isCurrentMonth, 'font-bold': day.isToday}">
+                            <span :class="{'bg-tocantins-blue text-white rounded-full flex items-center justify-center w-7 h-7': day.isToday}">{{ day.date.getDate() }}</span>
+                            <div class="mt-1">
+                                <div v-for="event in day.events" :key="event.id" @click="openEventModal(event)" class="bg-blue-200 text-blue-800 calendar-event">
+                                    {{ event.time }} - {{ event.title }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WEEK VIEW -->
+                <div v-if="view === 'week'" class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="grid grid-cols-7">
+                        <div v-for="day in weekDaysData" :key="day.date.toISOString()" class="border-r p-2">
+                             <div class="text-center mb-2">
+                                <p class="text-sm text-gray-500">{{ day.dayName }}</p>
+                                <p class="text-2xl font-bold" :class="{'text-tocantins-blue': day.isToday}">{{ day.date.getDate() }}</p>
+                            </div>
+                            <div class="space-y-2">
+                                <div v-for="event in day.events" :key="event.id" @click="openEventModal(event)" class="bg-blue-100 p-2 rounded-lg cursor-pointer hover:bg-blue-200">
+                                    <p class="font-bold text-sm text-gray-800">{{ event.title }}</p>
+                                    <p class="text-xs text-gray-600">{{ event.time }} - {{ event.location }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white text-center p-4">
+            <p>&copy; {{ new Date().getFullYear() }} Governo do Estado do Tocantins. Todos os direitos reservados.</p>
+        </footer>
+
+        <!-- Modal -->
+        <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg" @click.stop>
+                <!-- Add/Edit Form -->
+                <div v-if="!selectedEvent" class="p-6 sm:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">Adicionar Novo Evento</h3>
+                        <button @click="toggleModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+                    <form @submit.prevent="addEvent">
+                       <div class="space-y-4">
+                            <div>
+                                <label for="title" class="block text-sm font-medium text-gray-700">Título do Evento</label>
+                                <input type="text" v-model="newEvent.title" id="title" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-tocantins-blue focus:border-tocantins-blue" required>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                                    <input type="date" v-model="newEvent.date" id="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-tocantins-blue focus:border-tocantins-blue" required>
+                                </div>
+                                <div>
+                                    <label for="time" class="block text-sm font-medium text-gray-700">Horário</label>
+                                    <input type="time" v-model="newEvent.time" id="time" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-tocantins-blue focus:border-tocantins-blue" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="location" class="block text-sm font-medium text-gray-700">Local</label>
+                                <input type="text" v-model="newEvent.location" id="location" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-tocantins-blue focus:border-tocantins-blue" required>
+                            </div>
+                            <div>
+                                <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
+                                <textarea v-model="newEvent.description" id="description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-tocantins-blue focus:border-tocantins-blue"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-end space-x-3">
+                            <button type="button" @click="toggleModal()" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">Cancelar</button>
+                            <button type="submit" class="bg-tocantins-blue text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-800 transition duration-300">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- Event Details View -->
+                <div v-if="selectedEvent" class="p-6 sm:p-8">
+                     <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold text-tocantins-blue">{{ selectedEvent.title }}</h3>
+                        <button @click="toggleModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+                    <div class="space-y-3 text-gray-700">
+                        <p><i class="fas fa-calendar-alt w-5 text-gray-400 mr-2"></i><strong>Data:</strong> {{ formatDate(selectedEvent.date) }}</p>
+                        <p><i class="fas fa-clock w-5 text-gray-400 mr-2"></i><strong>Horário:</strong> {{ selectedEvent.time }}</p>
+                        <p><i class="fas fa-map-marker-alt w-5 text-gray-400 mr-2"></i><strong>Local:</strong> {{ selectedEvent.location }}</p>
+                        <div v-if="selectedEvent.description">
+                            <p class="font-bold mt-4 mb-1">Descrição:</p>
+                            <p class="text-sm bg-gray-50 p-3 rounded-md">{{ selectedEvent.description }}</p>
+                        </div>
+                    </div>
+                     <div class="mt-8 flex justify-end">
+                        <button type="button" @click="toggleModal()" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCWO9zD-IFn321eG68Z0YIOp9p1nw2RJE",
+            authDomain: "agendagov-bb69e.firebaseapp.com",
+            projectId: "agendagov-bb69e",
+            storageBucket: "agendagov-bb69e.firebasestorage.app",
+            messagingSenderId: "144147215963",
+            appId: "1:144147215963:web:ec435d38a495e42653b17e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    events: [],
+                    newEvent: { title: '', date: '', time: '', location: '', description: '' },
+                    showModal: false,
+                    isLoading: true,
+                    error: null,
+                    view: 'list', // 'list', 'week', 'month'
+                    currentDate: new Date(),
+                    weekDays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+                    selectedEvent: null,
+                }
+            },
+            computed: {
+                sortedEvents() {
+                    return [...this.events].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+                },
+                currentPeriodLabel() {
+                    if (this.view === 'month') {
+                        return this.currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                    }
+                    if (this.view === 'week') {
+                        const startOfWeek = this.getStartOfWeek(this.currentDate);
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(endOfWeek.getDate() + 6);
+                        return `${this.formatDate(startOfWeek)} - ${this.formatDate(endOfWeek)}`;
+                    }
+                    return '';
+                },
+                calendarDays() {
+                    const year = this.currentDate.getFullYear();
+                    const month = this.currentDate.getMonth();
+                    const firstDayOfMonth = new Date(year, month, 1);
+                    const lastDayOfMonth = new Date(year, month + 1, 0);
+                    const startDate = new Date(firstDayOfMonth);
+                    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start from Sunday
+                    const days = [];
+                    for (let i = 0; i < 42; i++) {
+                        const date = new Date(startDate);
+                        date.setDate(date.getDate() + i);
+                        days.push({
+                            date: date,
+                            isCurrentMonth: date.getMonth() === month,
+                            isToday: this.isSameDay(date, new Date()),
+                            events: this.getEventsForDay(date)
+                        });
+                    }
+                    return days;
+                },
+                weekDaysData() {
+                    const startOfWeek = this.getStartOfWeek(this.currentDate);
+                    const weekData = [];
+                    for (let i = 0; i < 7; i++) {
+                        const date = new Date(startOfWeek);
+                        date.setDate(date.getDate() + i);
+                        weekData.push({
+                            date: date,
+                            dayName: date.toLocaleString('pt-BR', { weekday: 'short' }),
+                            isToday: this.isSameDay(date, new Date()),
+                            events: this.getEventsForDay(date)
+                        });
+                    }
+                    return weekData;
+                }
+            },
+            methods: {
+                fetchEvents() {
+                    this.isLoading = true;
+                    const q = query(collection(db, 'events'));
+                    onSnapshot(q, (snapshot) => {
+                        this.events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        this.isLoading = false;
+                    }, (err) => {
+                        console.error("Error fetching events: ", err);
+                        this.error = "Não foi possível carregar a agenda.";
+                        this.isLoading = false;
+                    });
+                },
+                async addEvent() {
+                    if (!this.newEvent.title || !this.newEvent.date || !this.newEvent.time || !this.newEvent.location) return;
+                    try {
+                        await addDoc(collection(db, 'events'), this.newEvent);
+                        this.toggleModal();
+                    } catch (err) {
+                        console.error("Error adding event: ", err);
+                        alert('Ocorreu um erro ao salvar o evento.');
+                    }
+                },
+                toggleModal() {
+                    this.showModal = !this.showModal;
+                    if (!this.showModal) {
+                        this.newEvent = { title: '', date: '', time: '', location: '', description: '' };
+                        this.selectedEvent = null;
+                    }
+                },
+                openEventModal(event) {
+                    this.selectedEvent = event;
+                    this.showModal = true;
+                },
+                changePeriod(direction) {
+                    const newDate = new Date(this.currentDate);
+                    if (this.view === 'month') {
+                        newDate.setMonth(newDate.getMonth() + direction);
+                    } else if (this.view === 'week') {
+                        newDate.setDate(newDate.getDate() + (7 * direction));
+                    }
+                    this.currentDate = newDate;
+                },
+                getEventsForDay(date) {
+                    return this.sortedEvents.filter(event => this.isSameDay(new Date(event.date + 'T00:00:00'), date));
+                },
+                isSameDay(date1, date2) {
+                    return date1.getFullYear() === date2.getFullYear() &&
+                           date1.getMonth() === date2.getMonth() &&
+                           date1.getDate() === date2.getDate();
+                },
+                getStartOfWeek(date) {
+                    const dt = new Date(date);
+                    const day = dt.getDay();
+                    const diff = dt.getDate() - day + (day === 0 ? -6 : 0); // Adjust to start on Sunday
+                    return new Date(dt.setDate(diff));
+                },
+                // Formatting helpers
+                getDay(dateString) { return new Date(dateString + 'T00:00:00').getDate(); },
+                getMonthShort(dateString) { return new Date(dateString + 'T00:00:00').toLocaleString('pt-BR', { month: 'short' }).replace('.', ''); },
+                getYear(dateString) { return new Date(dateString + 'T00:00:00').getFullYear(); },
+                formatDate(date) {
+                    return date.toLocaleDateString('pt-BR');
+                }
+            },
+            mounted() {
+                this.fetchEvents();
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
