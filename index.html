@@ -225,18 +225,10 @@
     </div>
 
     <!-- Firebase SDK -->
+    <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBCWO9zD-IFn321eG68Z0YIOp9p1nw2RJE",
-            authDomain: "agendagov-bb69e.firebaseapp.com",
-            projectId: "agendagov-bb69e",
-            storageBucket: "agendagov-bb69e.firebasestorage.app",
-            messagingSenderId: "144147215963",
-            appId: "1:144147215963:web:ec435d38a495e42653b17e"
-        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
